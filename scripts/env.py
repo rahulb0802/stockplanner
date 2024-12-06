@@ -1,6 +1,7 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
+from dividends import dividend_yields
 
 class PortfolioEnv(gym.Env):
     def __init__(self, historical_data, initial_value, initial_allocations, phase_goals, benchmark_returns=None, is_training=True):
@@ -12,6 +13,7 @@ class PortfolioEnv(gym.Env):
         self.current_year = 0
         self.portfolio_value = initial_value
         self.allocations = np.array(initial_allocations, dtype=np.float32)
+        self.total_dividends = 0
 
         if not np.isclose(np.sum(self.allocations), 1):
             raise ValueError("Initial allocations must sum to 1.")
@@ -66,11 +68,17 @@ class PortfolioEnv(gym.Env):
 
         # Update the portfolio value based on the return
         self.portfolio_value *= (1 + portfolio_return)
+        asset_dividends = np.array(dividend_yields)
+        dividends_per_asset = self.portfolio_value * self.allocations * asset_dividends
+        annual_dividend = np.sum(dividends_per_asset)
+        self.total_dividends += annual_dividend
         self.history.append({
             "year": self.historical_data.index[self.current_year],
             "portfolio_value": self.portfolio_value,
             "growth_rate": portfolio_return * 100,
             "allocations": self.allocations.tolist(),
+            "annual_dividend": annual_dividend,
+            "total_dividends": self.total_dividends,
             "reward": self._calculate_reward()  # Get reward based on phase goals and other factors
         })
 
@@ -107,7 +115,7 @@ class PortfolioEnv(gym.Env):
 
         # Step 4: Normalize Returns
         returns = (returns - np.min(returns)) / (np.max(returns) - np.min(returns) + 0.1)
-        returns *= 0.63
+        returns *= 0.6
 
         return returns
 
@@ -157,9 +165,9 @@ class PortfolioEnv(gym.Env):
                 reward += 500  # Large reward for staying within target range
 
         ### 3. Inflation Adjustment Penalty
-        inflation_adjusted_value = self.portfolio_value / (1 + (inflation_us + inflation_nigeria) / 2)
+        inflation_adjusted_value = self.portfolio_value / (1 + (inflation_us * 3 + inflation_nigeria) / 2)
         inflation_impact = self.portfolio_value - inflation_adjusted_value
-        reward -= inflation_impact * 0.01  # Light penalty for inflation erosion
+        reward -= inflation_impact * 0.5  # Light penalty for inflation erosion
 
         ### 4. Smooth Growth Penalty
         if len(self.history) > 1:

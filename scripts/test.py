@@ -20,5 +20,6 @@ while not done:
     state, reward, done, truncated, info = env.step(action)
     print(f"Year: {env.current_year}, Portfolio Value: {env.portfolio_value}")
 print(f"Average return: {env.get_average_return('arithmetic')}")
+print(f"Total Dividends: {env.total_dividends}")
 # Save test results
 pd.DataFrame(env.history).to_csv("portfolio_performance.csv", index=False)
