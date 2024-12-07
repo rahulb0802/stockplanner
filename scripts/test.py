@@ -11,15 +11,48 @@ env = PortfolioEnv(historical_data=historical_data, initial_value=100000, initia
 
 # Load the model
 model = PPO.load("models/portfolio_rl_model.zip")
+histories = []
+for i in range(20):
+    # Test the model
+    state, info = env.reset()
+    done = False
+    while not done:
+        action, _ = model.predict(state)
+        state, reward, done, truncated, info = env.step(action)
+        # print(f"Year: {env.current_year}, Portfolio Value: {env.portfolio_value}")
+    # print(f"Average return: {env.get_average_return('arithmetic')}")
+    # print(f"Total Dividends: {env.total_dividends}")
+    histories.append(pd.DataFrame(env.history))
+    # Save test results
+    # pd.DataFrame(env.history).to_csv("portfolio_performance.csv", index=False)
+for idx, history in enumerate(histories):
+    history["Simulation"] = idx
 
-# Test the model
-state, info = env.reset()
-done = False
-while not done:
-    action, _ = model.predict(state)
-    state, reward, done, truncated, info = env.step(action)
-    print(f"Year: {env.current_year}, Portfolio Value: {env.portfolio_value}")
-print(f"Average return: {env.get_average_return('arithmetic')}")
-print(f"Total Dividends: {env.total_dividends}")
-# Save test results
-pd.DataFrame(env.history).to_csv("portfolio_performance.csv", index=False)
+# Combine all histories
+combined_history = pd.concat(histories)
+
+numeric_history = combined_history.select_dtypes(include=["number"])
+average_results = numeric_history.groupby("year").mean()
+std_results = numeric_history.groupby("year").std()
+
+# Merge results for analysis
+summary = average_results.copy()
+for col in std_results.columns:
+    summary[f"{col} Std"] = std_results[col]
+
+# Example: Extract and expand the allocations column
+allocations_df = combined_history["allocations"].apply(pd.Series)
+allocations_df.columns = [f"Asset {i+1}" for i in range(allocations_df.shape[1])]
+allocations_df["year"] = combined_history["year"]  # Add year for grouping
+
+# Compute averages and standard deviations for allocations
+average_allocations = allocations_df.groupby("year").mean()
+std_allocations = allocations_df.groupby("year").std()
+
+# Merge allocation stats with numeric stats
+summary_allocations = average_allocations.copy()
+for col in std_allocations.columns:
+    summary_allocations[f"{col} Std"] = std_allocations[col]
+
+summary.to_csv('numsummary.csv')
+summary_allocations.to_csv('allocationssummary.csv')

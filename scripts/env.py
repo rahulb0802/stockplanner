@@ -31,6 +31,7 @@ class PortfolioEnv(gym.Env):
     def reset(self, seed=None, options=None):
         self.current_year = 0
         self.portfolio_value = 100000
+        self.total_dividends = 0
         state = self._get_state()
         return state, {}
 
@@ -115,7 +116,7 @@ class PortfolioEnv(gym.Env):
 
         # Step 4: Normalize Returns
         returns = (returns - np.min(returns)) / (np.max(returns) - np.min(returns) + 0.1)
-        returns *= 0.6
+        returns *= 0.5
 
         return returns
 

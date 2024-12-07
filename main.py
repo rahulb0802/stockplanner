@@ -1,5 +1,4 @@
 import subprocess
-
 def run_script(script_name):
     """Run a Python script using subprocess."""
     result = subprocess.run(['python', script_name], capture_output=True, text=True)
@@ -16,3 +15,4 @@ if __name__ == "__main__":
     
     # Run the test.py script
     run_script('scripts/test.py')
+    
