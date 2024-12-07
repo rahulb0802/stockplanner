@@ -9,3 +9,4 @@ combined_return_annual.csv
 portfolio_annual_averages.csv
 portfolio_data.csv
 portfolio_performance.csv
+scripts/returngraph.py
